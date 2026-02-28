@@ -223,6 +223,15 @@ You are the final authority on what you trust. That's not a slogan, it's the arc
 
 Don't trust us. Read the code. That's the point.
 
+**Q: What happens if I lose my token?**
+We cannot recover it. No support ticket, no identity check, no recovery email will get it back. This is not a bug.
+
+Every service that can recover your account can do so because they stored something about you. Recovery is just the customer-friendly name for "we have your data." The ability to recover is proof of surveillance. We have nothing to recover from.
+
+Just verify again. The second check is identical to the first. We still learn nothing about you. You get a new token in two minutes.
+
+Think of it like cash. If you lose a twenty dollar bill the bank cannot give it back, not because they're incompetent, but because cash doesn't have your name on it. That's the feature. Back up your token like you'd back up a password. If you use a password manager, put it there. We will never offer account recovery. The day we do is the day we become everything we're building against.
+
 ---
 
 ## Contributing
@@ -246,8 +255,6 @@ AGPL-3.0 closes that door. If you use this code, modify it, and run it as a serv
 Fork it. Improve it. Deploy it. Just don't make it someone else's problem.
 
 ---
-
-## A Note on AI, Honesty, and Why You Matter
 
 Yes, we used AI to help build this. No, we're not particularly fans of it.
 
