@@ -140,7 +140,7 @@ We are architecturally incapable of surveillance. Not just policy-incapable, *te
 
 ## Why Open Source Is Non-Negotiable
 
-Trust-me-bro privacy is not privacy. Every single component of NotBigBrother, the issuance server, the verification library, the client-side wallet, the cryptographic primitives, is fully open source under AGPL-3.0.
+Trust-me-bro privacy is not privacy. Every single component of NotBigBrother, the issuance server, the verification library, the cryptographic primitives, is fully open source under AGPL-3.0.
 
 This means:
 - Security researchers can audit every claim we make
@@ -159,7 +159,6 @@ If our code doesn't match our promises, you'll know. **That's the point.**
 | Signature scheme | Ed25519 or RSA-PSS blind signatures |
 | Token format | JWT-compatible or custom CBOR structure |
 | Anonymization primitive | Chaum blind signatures / BBS+ credentials |
-| Client wallet | Browser extension + mobile SDK |
 | Verification library | Pure JS/WASM (runs offline, no external calls) |
 | Issuance server | Open source, self-hostable |
 
