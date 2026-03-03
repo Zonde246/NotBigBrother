@@ -153,8 +153,11 @@ interface DetectorInput {
  */
 async function prepareDetectorInput(imageBuffer: Buffer): Promise<DetectorInput> {
   const meta = await sharp(imageBuffer).metadata();
-  const srcW = meta.width!;
-  const srcH = meta.height!;
+  if (!meta.width || !meta.height) {
+    throw new Error('Could not determine image dimensions');
+  }
+  const srcW = meta.width;
+  const srcH = meta.height;
 
   const scale   = Math.min(DET_SIZE / srcW, DET_SIZE / srcH);
   const newW    = Math.round(srcW * scale);
@@ -327,7 +330,10 @@ async function prepareAgeInput(imageBuffer: Buffer, face: FaceBox, imgW: number,
  */
 async function estimateAge(imageBuffer: Buffer, face: FaceBox): Promise<{ age: number; raw: number }> {
   const meta = await sharp(imageBuffer).metadata();
-  const chw  = await prepareAgeInput(imageBuffer, face, meta.width!, meta.height!);
+  if (!meta.width || !meta.height) {
+    throw new Error('Could not determine image dimensions');
+  }
+  const chw  = await prepareAgeInput(imageBuffer, face, meta.width, meta.height);
 
   const inputName = ageSession!.inputNames[0];
   const tensor    = new ort.Tensor('float32', chw, [1, 3, GA_SIZE, GA_SIZE]);

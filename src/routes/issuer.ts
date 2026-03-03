@@ -39,17 +39,28 @@ function blindSign(blindedStr: string): string {
 }
 
 /**
- * Type-guard: returns true when `s` is a non-empty decimal string whose length
- * does not exceed `modulusLength`.  The length cap prevents runaway modPow()
- * calls on inputs larger than the RSA modulus.
+ * Type-guard: returns true when `s` is a non-empty decimal string that is
+ * numerically in the range (0, N) where N is the RSA modulus string.
+ *
+ * The length cap is a fast pre-filter to avoid parsing obviously oversized
+ * inputs; the BigInt comparison catches same-length values that exceed N.
  */
-function isValidBigDecimal(s: unknown, modulusLength: number): s is string {
-  return (
-    typeof s === 'string' &&
-    s.length > 0 &&
-    s.length <= modulusLength &&
-    /^\d+$/.test(s)
-  );
+function isValidBigDecimal(s: unknown, modulusStr: string): s is string {
+  if (
+    typeof s !== 'string' ||
+    s.length === 0 ||
+    s.length > modulusStr.length ||
+    !/^\d+$/.test(s)
+  ) {
+    return false;
+  }
+  try {
+    const val = BigInt(s);
+    const mod = BigInt(modulusStr);
+    return val > 0n && val < mod;
+  } catch {
+    return false;
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -83,9 +94,9 @@ router.post('/request-token', (req: Request, res: Response) => {
   const { blindedMessage } = req.body as { blindedMessage: unknown };
   const { N } = getPublicComponents();
 
-  if (!isValidBigDecimal(blindedMessage, N.length)) {
+  if (!isValidBigDecimal(blindedMessage, N)) {
     return res.status(400).json({
-      error: 'blindedMessage must be a non-empty decimal integer string no longer than the modulus',
+      error: 'blindedMessage must be a positive decimal integer string strictly less than the modulus',
     });
   }
 
@@ -107,18 +118,21 @@ router.post('/request-token', (req: Request, res: Response) => {
 });
 
 /**
- * POST /api/issuer/verify  (development only — blocked in production)
+ * POST /api/issuer/verify  (disabled by default — opt-in via env var)
  *
  * Debug helper that confirms a credential's signature using both the public
  * key (what any website does) and the private key (server self-check).
  * Not required by the privacy model — offline verification uses the public
  * key alone.
  *
+ * Enable only in development by setting ENABLE_VERIFY_ENDPOINT=1.
+ * Never set this in production.
+ *
  * Body:     { token: object, signature: string }
  * Response: { publicKeyValid: boolean, privateKeyValid: boolean }
  */
 router.post('/verify', (req: Request, res: Response) => {
-  if (process.env.NODE_ENV === 'production') {
+  if (process.env.ENABLE_VERIFY_ENDPOINT !== '1') {
     return res.status(403).json({ error: 'Forbidden' });
   }
 

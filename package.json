@@ -6,7 +6,7 @@
   "scripts": {
     "build": "tsc",
     "start": "node dist/server.js",
-    "dev": "ts-node src/server.ts",
+    "dev": "nodemon --exec ts-node src/server.ts --ext ts",
     "postinstall": "node scripts/download-models.js",
     "download-models": "node scripts/download-models.js",
     "bundle": "browserify public/js/demo.js -o public/js/demo.bundle.js",
@@ -43,6 +43,7 @@
     "express-rate-limit": "^8.2.1",
     "helmet": "^8.1.0",
     "multer": "^2.1.0",
+    "node-rsa": "^1.1.1",
     "onnxruntime-node": "^1.24.2",
     "sharp": "^0.34.5"
   },
@@ -53,6 +54,7 @@
     "@types/node": "^25.3.3",
     "@types/supertest": "^7.2.0",
     "browserify": "^17.0.1",
+    "nodemon": "^3.1.10",
     "jest": "^30.2.0",
     "supertest": "^7.2.2",
     "ts-jest": "^29.4.6",

@@ -44,11 +44,11 @@ That's double-blind. That's the whole thing.
 
 ## How It Works (Technical Design)
 
-This is built on a cryptographic primitive called a **blind signature scheme**, pioneered by David Chaum, the same foundational idea behind anonymous digital cash. Here's the full flow:
+This is built on a **blind signature scheme** — a cryptographic primitive that lets a server sign a message without ever seeing its contents. Here's the full flow:
 
 ### Step 1: Age Verification (You and NotBigBrother)
 
-You visit NotBigBrother and prove your age through a standard identity check (government ID scan, bank verification, etc.). This is the **only moment your identity is involved**.
+You visit NotBigBrother and prove your age. Currently this is done via face-based age estimation (SCRFD + InsightFace). In production, this would be backed by a stronger identity check (government ID scan, bank verification, etc.) — but the cryptographic flow is identical regardless of the verification method. This is the **only moment your identity is involved**.
 
 At this point:
 - We confirm you are 18+
@@ -118,7 +118,12 @@ Neither party has enough information to build a profile on you. **Neither party 
 
 A valid concern: can someone share their token with others?
 
-Each token includes a unique `nonce` and websites can optionally mark tokens as "consumed" in their own local database after first use. For higher-security contexts, we support a **nullifier scheme**, a one-way hash derived from the token that a website can record without it revealing anything about the underlying token or its owner.
+Each token includes a unique `nonce` and websites can optionally mark tokens as "consumed" in their own local database after first use. For higher-security contexts, a **nullifier scheme** can be used: compute a one-way hash (e.g. SHA-256) of the token and store that hash. If the same token is presented again, the hash will match and can be rejected. The hash reveals nothing about the underlying token or its owner.
+
+```js
+// On the website's side — no calls to NBB required
+const nullifier = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(token));
+```
 
 This prevents reuse **without** creating a tracking mechanism.
 
@@ -130,7 +135,7 @@ This prevents reuse **without** creating a tracking mechanism.
 |---|---|
 | Sell your identity to data brokers | ❌ We never store it |
 | Tell a website who you are | ❌ The token contains no identity |
-| Track which sites you verify on | ❌ Verification is done offline, locally |
+| Track which sites you verify on | ❌ Verification doesn't involve our servers |
 | Build a browsing profile on you | ❌ No mechanism exists to do this |
 | Comply with a subpoena for your activity logs | ❌ The logs don't exist |
 
@@ -156,12 +161,11 @@ If our code doesn't match our promises, you'll know. **That's the point.**
 
 | Component | Technology |
 |---|---|
-| Signature scheme | Ed25519 or RSA-PSS blind signatures |
-| Token format | JWT-compatible or custom CBOR structure |
-| Anonymization primitive | Chaum blind signatures / BBS+ credentials |
-| Client wallet | Browser extension + mobile SDK |
-| Verification library | Pure JS/WASM (runs offline, no external calls) |
-| Issuance server | Open source, self-hostable |
+| Signature scheme | RSA blind signatures (Chaum) |
+| Age estimation | SCRFD + InsightFace (ONNX, runs on-server) |
+| Token format | Custom `nbb1.<base64>` credential file |
+| Anonymization primitive | Chaum blind signatures |
+| Issuance server | Node.js + Express, open source, self-hostable |
 
 ---
 
@@ -169,36 +173,47 @@ If our code doesn't match our promises, you'll know. **That's the point.**
 
 ```bash
 # Clone the repo
-git clone https://github.com/notbigbrother/notbigbrother
+git clone https://github.com/Zonde246/NotBigBrother
 
-# Install dependencies
+# Install dependencies (also downloads ONNX models)
 npm install
 
-# Run the issuance server locally
-npm run server
-
-# Run the verification demo
-npm run demo
+# Start the server
+node server.js
 ```
 
-Full setup and usage guide: [SETUP.md](SETUP.md).
+Then open `http://localhost:3001` in your browser.
 
 ---
 
 ## Integrating as a Website or App
 
+Fetch NBB's public key once (cache it — it doesn't change), then verify any credential locally. No API key, no account, no server calls at verification time.
+
 ```js
-import { verify } from '@notbigbrother/verify';
+import BlindSignatures from 'blind-signatures';
 
-const isValid = await verify(tokenFromUser);
+// 1. Fetch the public key once and cache it
+const { N, E } = await fetch('https://notbigbrother-production.up.railway.app/api/issuer/public-key')
+  .then(r => r.json());
 
-if (isValid) {
+// 2. Parse the credential file (nbb1.<base64>)
+const raw = credentialFileContents.replace(/^nbb1\./, '');
+const { token, signature } = JSON.parse(atob(raw));
+
+// 3. Verify the signature locally
+const isValid = BlindSignatures.verify({
+  unblinded: signature,
+  N,
+  E,
+  message: JSON.stringify(token),
+});
+
+if (isValid && token.expiry > Date.now() / 1000) {
   // User is verified 18+. You know nothing else about them.
   // That's the feature.
 }
 ```
-
-No API key required. No account with us. No calls to our servers. Drop in the library, check the token, move on.
 
 ---
 

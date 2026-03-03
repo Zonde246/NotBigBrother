@@ -166,6 +166,7 @@ function generateToken() {
 
   const now = Math.floor(Date.now() / 1000);
   state.token = {
+    v: 1,
     type: 'age_verified',
     min_age: 18,
     issued_at: now,

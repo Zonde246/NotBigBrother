@@ -5,8 +5,8 @@
  *   PORT             Listening port (default: 3001)
  *   ALLOWED_ORIGINS  Comma-separated allowed CORS origins
  *                    (default: http://localhost:<PORT>)
- *   NODE_ENV         Set to "production" to disable the /api/issuer/verify
- *                    debug endpoint.
+ *   ENABLE_VERIFY_ENDPOINT  Set to "1" to enable the /api/issuer/verify debug
+ *                           endpoint (disabled by default — never enable in production).
  */
 
 import express, { Request, Response, NextFunction } from 'express';
@@ -25,6 +25,10 @@ const PORT = process.env.PORT || 3001;
 // ---------------------------------------------------------------------------
 
 app.use(helmet());
+
+// Trust the first hop's X-Forwarded-For header so rate limiting and IP logging
+// work correctly behind a reverse proxy (Nginx, Cloudflare, Vercel, etc.).
+app.set('trust proxy', 1);
 
 // CORS — only allow explicitly configured origins (deny all others by default).
 const ALLOWED_ORIGINS = new Set(
@@ -61,7 +65,7 @@ app.use(
 // Body parsing & static files
 // ---------------------------------------------------------------------------
 
-app.use(express.json());
+app.use(express.json({ limit: '10kb' }));
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
 // ---------------------------------------------------------------------------
